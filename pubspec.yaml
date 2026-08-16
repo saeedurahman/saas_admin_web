@@ -1,0 +1,30 @@
+name: saas_admin_web
+description: Madaris SaaS platform administration web app.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  dio: ^5.7.0
+  equatable: ^2.0.7
+  flutter_bloc: ^9.1.0
+  flutter_secure_storage: ^9.2.4
+  get_it: ^8.0.3
+  go_router: ^14.6.2
+  madaris_core:
+    path: ../madaris_core
+  shared_preferences: ^2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
