@@ -17,13 +17,17 @@ class SubscriptionPlanListLoaded extends SubscriptionPlanListState {
   const SubscriptionPlanListLoaded({
     required this.plans,
     required this.canCreate,
+    this.canEdit = false,
+    this.canRetire = false,
   });
 
   final List<SubscriptionPlan> plans;
   final bool canCreate;
+  final bool canEdit;
+  final bool canRetire;
 
   @override
-  List<Object?> get props => [plans, canCreate];
+  List<Object?> get props => [plans, canCreate, canEdit, canRetire];
 }
 
 class SubscriptionPlanListError extends SubscriptionPlanListState {
@@ -35,15 +39,20 @@ class SubscriptionPlanListError extends SubscriptionPlanListState {
   List<Object?> get props => [message];
 }
 
-class SubscriptionPlanListCreating extends SubscriptionPlanListState {
-  const SubscriptionPlanListCreating({
+/// A create, edit or retire request is in flight.
+class SubscriptionPlanListSaving extends SubscriptionPlanListState {
+  const SubscriptionPlanListSaving({
     required this.plans,
     required this.canCreate,
+    this.canEdit = false,
+    this.canRetire = false,
   });
 
   final List<SubscriptionPlan> plans;
   final bool canCreate;
+  final bool canEdit;
+  final bool canRetire;
 
   @override
-  List<Object?> get props => [plans, canCreate];
+  List<Object?> get props => [plans, canCreate, canEdit, canRetire];
 }

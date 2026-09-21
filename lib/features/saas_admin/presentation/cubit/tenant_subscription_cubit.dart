@@ -58,11 +58,42 @@ class TenantSubscriptionCubit extends Cubit<TenantSubscriptionState>
     }
   }
 
+  /// Called by the period-length control; a non-null [error] blocks submit.
+  void setPeriodError(String? error) {
+    final current = state;
+    if (current is! TenantSubscriptionEditing) return;
+    emit(
+      current.copyWith(
+        periodError: error,
+        clearPeriodError: error == null,
+        showPeriodError: false,
+      ),
+    );
+  }
+
   Future<void> submit() async {
     final current = state;
     if (current is! TenantSubscriptionEditing) return;
     if (current.formData.planId.isEmpty) {
       emit(TenantSubscriptionError('Select a subscription plan'));
+      emit(current);
+      return;
+    }
+
+    final periodError = current.periodError;
+    if (periodError != null) {
+      emit(TenantSubscriptionError(periodError));
+      emit(current.copyWith(showPeriodError: true));
+      return;
+    }
+
+    final form = current.formData;
+    final start = form.currentPeriodStart;
+    final end = form.currentPeriodEnd;
+    if (start != null && end != null && end.isBefore(start)) {
+      emit(const TenantSubscriptionError(
+        'Period end must not be before period start',
+      ));
       emit(current);
       return;
     }

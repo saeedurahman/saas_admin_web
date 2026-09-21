@@ -7,9 +7,12 @@ import '../../domain/entities/subscription_invoice.dart';
 import '../../domain/entities/subscription_invoice_filters.dart';
 import '../../domain/entities/subscription_invoice_page.dart';
 import '../../domain/entities/subscription_plan.dart';
+import '../../domain/entities/subscription_plan_update_data.dart';
 import '../../domain/entities/tenant_create_result.dart';
 import '../../domain/entities/tenant_subscription.dart';
+import '../../domain/entities/tenant_type_constants.dart';
 import 'package:madaris_core/money/money.dart';
+import 'package:madaris_core/utils/date_formatter.dart';
 
 class PlatformTenantModel {
   PlatformTenantModel({
@@ -22,6 +25,7 @@ class PlatformTenantModel {
     this.contactPhone,
     this.planName,
     this.subscriptionStatus,
+    this.tenantType = TenantTypeConstants.defaultType,
   });
 
   final String id;
@@ -33,6 +37,7 @@ class PlatformTenantModel {
   final String? contactPhone;
   final String? planName;
   final String? subscriptionStatus;
+  final String tenantType;
 
   factory PlatformTenantModel.fromJson(Map<String, dynamic> json) {
     return PlatformTenantModel(
@@ -45,6 +50,8 @@ class PlatformTenantModel {
       contactPhone: json['contact_phone'] as String?,
       planName: json['plan_name'] as String?,
       subscriptionStatus: json['subscription_status'] as String?,
+      tenantType: json['tenant_type'] as String? ??
+          TenantTypeConstants.defaultType,
     );
   }
 
@@ -58,6 +65,7 @@ class PlatformTenantModel {
         contactPhone: contactPhone,
         planName: planName,
         subscriptionStatus: subscriptionStatus,
+        tenantType: tenantType,
       );
 }
 
@@ -169,6 +177,21 @@ class SubscriptionPlanModel {
   }
 }
 
+class SubscriptionPlanJson {
+  /// PATCH body carrying the plan's full editable state. Nullable fields are
+  /// sent as explicit nulls so clearing a limit or annual price takes effect.
+  static Map<String, dynamic> updatePayload(SubscriptionPlanUpdateData data) {
+    return {
+      'name': data.name.trim(),
+      'price_monthly': data.priceMonthly.trim(),
+      'price_annual': data.priceAnnual?.trim(),
+      'max_users': data.maxUsers,
+      'max_students': data.maxStudents,
+      'feature_flags': data.featureFlags,
+    };
+  }
+}
+
 class TenantSubscriptionModel {
   TenantSubscriptionModel({
     required this.id,
@@ -240,6 +263,7 @@ class TenantFormJson {
     required String adminEmail,
     required String adminFullName,
     String? adminPassword,
+    String tenantType = TenantTypeConstants.defaultType,
   }) {
     return {
       'name': name,
@@ -251,6 +275,7 @@ class TenantFormJson {
           ?contactPhone?.trim().isEmpty == true ? null : contactPhone?.trim(),
       'admin_email': adminEmail,
       'admin_full_name': adminFullName,
+      'tenant_type': tenantType,
       'admin_password': ?adminPassword?.trim().isEmpty == true
           ? null
           : adminPassword?.trim(),
@@ -264,9 +289,11 @@ class TenantFormJson {
       'plan_id': data.planId,
       'billing_cycle': data.billingCycle,
       'status': data.status,
-      'trial_ends_at': data.trialEndsAt?.toIso8601String().split('T').first,
-      'current_period_start':
-          data.currentPeriodStart?.toIso8601String().split('T').first,
+      'trial_ends_at': DateFormatter.toApiDate(data.trialEndsAt),
+      'current_period_start': DateFormatter.toApiDate(data.currentPeriodStart),
+      if (data.periodMonths != null) 'period_months': data.periodMonths,
+      if (data.currentPeriodEnd != null)
+        'current_period_end': DateFormatter.toApiDate(data.currentPeriodEnd),
     };
   }
 }
@@ -280,6 +307,9 @@ class SubscriptionInvoiceModel {
     required this.invoiceNumber,
     required this.amount,
     required this.billingPeriodLabel,
+    this.periodStart,
+    this.periodEnd,
+    this.periodMonths,
     required this.dueDate,
     required this.status,
     this.paidDate,
@@ -295,6 +325,9 @@ class SubscriptionInvoiceModel {
   final String invoiceNumber;
   final Money amount;
   final String billingPeriodLabel;
+  final DateTime? periodStart;
+  final DateTime? periodEnd;
+  final int? periodMonths;
   final DateTime dueDate;
   final String status;
   final DateTime? paidDate;
@@ -311,6 +344,9 @@ class SubscriptionInvoiceModel {
       invoiceNumber: json['invoice_number'] as String,
       amount: Money.parse(json['amount']),
       billingPeriodLabel: json['billing_period_label'] as String,
+      periodStart: DateFormatter.fromApiDate(json['period_start'] as String?),
+      periodEnd: DateFormatter.fromApiDate(json['period_end'] as String?),
+      periodMonths: json['period_months'] as int?,
       dueDate: DateTime.parse(json['due_date'] as String),
       status: json['status'] as String,
       paidDate: json['paid_date'] != null
@@ -330,6 +366,9 @@ class SubscriptionInvoiceModel {
         invoiceNumber: invoiceNumber,
         amount: amount,
         billingPeriodLabel: billingPeriodLabel,
+        periodStart: periodStart,
+        periodEnd: periodEnd,
+        periodMonths: periodMonths,
         dueDate: dueDate,
         status: status,
         paidDate: paidDate,
@@ -416,10 +455,16 @@ class SubscriptionInvoiceJson {
   static Map<String, dynamic> generatePayload(
     GenerateSubscriptionInvoiceData data,
   ) {
+    final label = data.billingPeriodLabel?.trim();
     return {
-      'billing_period_label': data.billingPeriodLabel.trim(),
-      'due_date': data.dueDate.toIso8601String().split('T').first,
+      if (label != null && label.isNotEmpty) 'billing_period_label': label,
+      'due_date': DateFormatter.toApiDate(data.dueDate),
       if (data.tenantId != null) 'tenant_id': data.tenantId,
+      if (data.periodStart != null)
+        'period_start': DateFormatter.toApiDate(data.periodStart),
+      if (data.periodEnd != null)
+        'period_end': DateFormatter.toApiDate(data.periodEnd),
+      if (data.periodMonths != null) 'period_months': data.periodMonths,
     };
   }
 

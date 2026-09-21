@@ -158,6 +158,15 @@ class _SubscriptionInvoiceDetailBody extends StatelessWidget {
                           label: 'Billing period',
                           value: invoice.billingPeriodLabel,
                         ),
+                        if (invoice.periodStart != null &&
+                            invoice.periodEnd != null)
+                          _DetailRow(
+                            label: 'Period dates',
+                            value:
+                                '${DateFormatter.formatDisplay(invoice.periodStart)} → '
+                                '${DateFormatter.formatDisplay(invoice.periodEnd)}'
+                                '${invoice.periodMonths != null ? ' (${invoice.periodMonths} months)' : ''}',
+                          ),
                         _DetailRow(
                           label: 'Amount',
                           value: invoice.amount.formatDisplay(),

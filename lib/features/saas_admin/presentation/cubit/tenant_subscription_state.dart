@@ -23,6 +23,8 @@ class TenantSubscriptionEditing extends TenantSubscriptionState {
     this.existingSubscription,
     this.isSubmitting = false,
     this.canEdit = true,
+    this.periodError,
+    this.showPeriodError = false,
   });
 
   final PlatformTenant tenant;
@@ -32,6 +34,13 @@ class TenantSubscriptionEditing extends TenantSubscriptionState {
   final bool isSubmitting;
   final bool canEdit;
 
+  /// Set by the period-length control while its input is incomplete or
+  /// invalid (e.g. "Custom months" selected but empty). Blocks submit.
+  final String? periodError;
+
+  /// True once a submit was blocked by [periodError], so the control shows it.
+  final bool showPeriodError;
+
   TenantSubscriptionEditing copyWith({
     PlatformTenant? tenant,
     List<SubscriptionPlan>? plans,
@@ -39,6 +48,9 @@ class TenantSubscriptionEditing extends TenantSubscriptionState {
     TenantSubscription? existingSubscription,
     bool? isSubmitting,
     bool? canEdit,
+    String? periodError,
+    bool clearPeriodError = false,
+    bool? showPeriodError,
   }) {
     return TenantSubscriptionEditing(
       tenant: tenant ?? this.tenant,
@@ -47,6 +59,8 @@ class TenantSubscriptionEditing extends TenantSubscriptionState {
       existingSubscription: existingSubscription ?? this.existingSubscription,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       canEdit: canEdit ?? this.canEdit,
+      periodError: clearPeriodError ? null : periodError ?? this.periodError,
+      showPeriodError: showPeriodError ?? this.showPeriodError,
     );
   }
 
@@ -58,6 +72,8 @@ class TenantSubscriptionEditing extends TenantSubscriptionState {
         existingSubscription,
         isSubmitting,
         canEdit,
+        periodError,
+        showPeriodError,
       ];
 }
 

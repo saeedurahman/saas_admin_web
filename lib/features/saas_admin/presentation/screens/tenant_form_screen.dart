@@ -6,8 +6,10 @@ import '../../../../core/di/injection.dart';
 import 'package:madaris_core/widgets/app_button.dart';
 import 'package:madaris_core/widgets/app_text_field.dart';
 import 'package:madaris_core/widgets/form/app_form_card.dart';
+import 'package:madaris_core/widgets/form/app_form_dropdown_field.dart';
 import 'package:madaris_core/widgets/form/app_form_section.dart';
 import '../../domain/entities/tenant_form_data.dart';
+import '../../domain/entities/tenant_type_constants.dart';
 import '../cubit/tenant_form_cubit.dart';
 import '../cubit/tenant_form_state.dart';
 import '../widgets/tenant_credentials_dialog.dart';
@@ -30,6 +32,7 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
   final _adminEmailController = TextEditingController();
   final _adminFullNameController = TextEditingController();
   final _adminPasswordController = TextEditingController();
+  String _tenantType = TenantTypeConstants.defaultType;
 
   @override
   void dispose() {
@@ -54,6 +57,7 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
       adminEmail: _adminEmailController.text,
       adminFullName: _adminFullNameController.text,
       adminPassword: _adminPasswordController.text,
+      tenantType: _tenantType,
     );
   }
 
@@ -104,6 +108,24 @@ class _TenantFormScreenState extends State<TenantFormScreen> {
                     AppFormSection(
                       title: 'Tenant details',
                       children: [
+                        AppFormDropdownField<String>(
+                          label: 'Tenant type',
+                          icon: Icons.category_outlined,
+                          required: true,
+                          value: _tenantType,
+                          items: [
+                            for (final (value, label)
+                                in TenantTypeConstants.types)
+                              DropdownMenuItem(value: value, child: Text(label)),
+                          ],
+                          onChanged: isSubmitting
+                              ? null
+                              : (value) {
+                                  if (value != null) {
+                                    setState(() => _tenantType = value);
+                                  }
+                                },
+                        ),
                         AppTextField(
                           controller: _nameController,
                           label: 'Name',

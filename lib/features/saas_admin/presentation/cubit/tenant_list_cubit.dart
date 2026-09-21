@@ -15,15 +15,37 @@ class TenantListCubit extends Cubit<TenantListState> with SafeCubitMixin {
     emit(const TenantListLoading());
     await runGuarded(
       () async {
-        final tenants = await _repository.listTenants();
-        emit(
-          TenantListLoaded(
-            tenants: tenants,
-            canCreate: permissions.contains('tenants:create'),
-          ),
-        );
+        emit(await _fetchLoaded());
       },
       onError: (error) => emit(TenantListError(error.message)),
+    );
+  }
+
+  /// Suspends or re-activates a tenant. The PATCH response lacks the
+  /// plan/subscription columns, so the list is refetched on success.
+  Future<void> setTenantStatus(String tenantId, String status) async {
+    final current = state;
+    if (current is! TenantListLoaded || current.updatingTenantId != null) {
+      return;
+    }
+    emit(current.copyWith(updatingTenantId: tenantId));
+    await runGuarded(
+      () async {
+        await _repository.updateTenantStatus(tenantId, status);
+        emit(await _fetchLoaded());
+      },
+      onError: (error) => emit(
+        current.copyWith(clearUpdating: true, actionError: error.message),
+      ),
+    );
+  }
+
+  Future<TenantListLoaded> _fetchLoaded() async {
+    final tenants = await _repository.listTenants();
+    return TenantListLoaded(
+      tenants: tenants,
+      canCreate: permissions.contains('tenants:create'),
+      canEdit: permissions.contains('tenants:edit'),
     );
   }
 }

@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'tenant_type_constants.dart';
+
 class PlatformTenant extends Equatable {
   const PlatformTenant({
     required this.id,
@@ -11,6 +13,7 @@ class PlatformTenant extends Equatable {
     this.contactPhone,
     this.planName,
     this.subscriptionStatus,
+    this.tenantType = TenantTypeConstants.defaultType,
   });
 
   final String id;
@@ -22,6 +25,7 @@ class PlatformTenant extends Equatable {
   final String? contactPhone;
   final String? planName;
   final String? subscriptionStatus;
+  final String tenantType;
 
   @override
   List<Object?> get props => [
@@ -34,5 +38,6 @@ class PlatformTenant extends Equatable {
         contactPhone,
         planName,
         subscriptionStatus,
+        tenantType,
       ];
 }

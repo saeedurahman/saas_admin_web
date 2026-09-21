@@ -39,6 +39,23 @@ class PlatformRemoteDataSource {
     }
   }
 
+  Future<PlatformTenantModel> updateTenant(
+    String tenantId,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final response = await _dio.patch(
+        ApiConstants.platformTenant(tenantId),
+        data: body,
+      );
+      return PlatformTenantModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } on DioException catch (error) {
+      throw mapDioException(error);
+    }
+  }
+
   Future<TenantSubscriptionModel?> fetchTenantSubscription(
     String tenantId,
   ) async {
@@ -100,6 +117,36 @@ class PlatformRemoteDataSource {
       final response = await _dio.post(
         ApiConstants.platformSubscriptionPlans,
         data: body,
+      );
+      return SubscriptionPlanModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } on DioException catch (error) {
+      throw mapDioException(error);
+    }
+  }
+
+  Future<SubscriptionPlanModel> updateSubscriptionPlan(
+    String planId,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final response = await _dio.patch(
+        ApiConstants.platformSubscriptionPlan(planId),
+        data: body,
+      );
+      return SubscriptionPlanModel.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+    } on DioException catch (error) {
+      throw mapDioException(error);
+    }
+  }
+
+  Future<SubscriptionPlanModel> retireSubscriptionPlan(String planId) async {
+    try {
+      final response = await _dio.delete(
+        ApiConstants.platformSubscriptionPlan(planId),
       );
       return SubscriptionPlanModel.fromJson(
         response.data as Map<String, dynamic>,

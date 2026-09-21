@@ -6,6 +6,7 @@ import '../entities/subscription_invoice.dart';
 import '../entities/subscription_invoice_filters.dart';
 import '../entities/subscription_invoice_page.dart';
 import '../entities/subscription_plan.dart';
+import '../entities/subscription_plan_update_data.dart';
 import '../entities/tenant_create_result.dart';
 import '../entities/tenant_form_data.dart';
 import '../entities/tenant_subscription.dart';
@@ -14,6 +15,9 @@ abstract class PlatformRepository {
   Future<List<PlatformTenant>> listTenants();
 
   Future<TenantCreateResult> createTenant(TenantFormData data);
+
+  /// [status] is a tenant status: `active`, `trial` or `suspended`.
+  Future<void> updateTenantStatus(String tenantId, String status);
 
   Future<TenantSubscription?> getTenantSubscription(String tenantId);
 
@@ -32,6 +36,14 @@ abstract class PlatformRepository {
     int? maxStudents,
     Map<String, bool>? featureFlags,
   });
+
+  Future<SubscriptionPlan> updateSubscriptionPlan(
+    String planId,
+    SubscriptionPlanUpdateData data,
+  );
+
+  /// Soft-deactivates the plan (`is_active = false`).
+  Future<SubscriptionPlan> retireSubscriptionPlan(String planId);
 
   Future<PlatformDashboard> getDashboard();
 

@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/injection.dart';
 import 'package:madaris_core/widgets/app_loading_indicator.dart';
+import '../../domain/entities/subscription_plan.dart';
+import '../../domain/entities/subscription_plan_update_data.dart';
 import '../cubit/saas_auth_cubit.dart';
 import '../cubit/saas_auth_state.dart';
 import '../cubit/subscription_plan_list_cubit.dart';
 import '../cubit/subscription_plan_list_state.dart';
+import '../widgets/subscription_plan_form_dialog.dart';
 
 class SubscriptionPlanListScreen extends StatelessWidget {
   const SubscriptionPlanListScreen({super.key});
@@ -35,100 +38,60 @@ class _SubscriptionPlanListBody extends StatelessWidget {
   const _SubscriptionPlanListBody();
 
   Future<void> _showCreateDialog(BuildContext context) async {
-    final nameController = TextEditingController();
-    final monthlyController = TextEditingController();
-    final annualController = TextEditingController();
-    var hostel = false;
-    var payroll = false;
-
-    final created = await showDialog<bool>(
+    final data = await showDialog<SubscriptionPlanUpdateData>(
       context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Create plan'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Name',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: monthlyController,
-                      decoration: const InputDecoration(
-                        labelText: 'Monthly price',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: annualController,
-                      decoration: const InputDecoration(
-                        labelText: 'Annual price (optional)',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Hostel module'),
-                      value: hostel,
-                      onChanged: (value) =>
-                          setState(() => hostel = value ?? false),
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Payroll module'),
-                      value: payroll,
-                      onChanged: (value) =>
-                          setState(() => payroll = value ?? false),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(dialogContext, true),
-                  child: const Text('Create'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (_) => const SubscriptionPlanFormDialog(),
     );
-
-    if (created != true || !context.mounted) return;
-
-    final flags = <String, bool>{
-      if (hostel) 'hostel': true,
-      if (payroll) 'payroll': true,
-    };
+    if (data == null || !context.mounted) return;
 
     await context.read<SubscriptionPlanListCubit>().createPlan(
-          name: nameController.text.trim(),
-          priceMonthly: monthlyController.text.trim(),
-          priceAnnual: annualController.text.trim().isEmpty
-              ? null
-              : annualController.text.trim(),
-          featureFlags: flags.isEmpty ? null : flags,
+          name: data.name,
+          priceMonthly: data.priceMonthly,
+          priceAnnual: data.priceAnnual,
+          maxUsers: data.maxUsers,
+          maxStudents: data.maxStudents,
+          featureFlags: data.featureFlags.isEmpty ? null : data.featureFlags,
         );
+  }
 
-    nameController.dispose();
-    monthlyController.dispose();
-    annualController.dispose();
+  Future<void> _showEditDialog(
+    BuildContext context,
+    SubscriptionPlan plan,
+  ) async {
+    final data = await showDialog<SubscriptionPlanUpdateData>(
+      context: context,
+      builder: (_) => SubscriptionPlanFormDialog(plan: plan),
+    );
+    if (data == null || !context.mounted) return;
+    await context.read<SubscriptionPlanListCubit>().updatePlan(plan.id, data);
+  }
+
+  Future<void> _confirmRetire(
+    BuildContext context,
+    SubscriptionPlan plan,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Retire plan?'),
+        content: Text(
+          '${plan.name} will no longer be offered when assigning '
+          'subscriptions. Tenants already on it are not changed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Retire'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await context.read<SubscriptionPlanListCubit>().retirePlan(plan.id);
   }
 
   @override
@@ -169,7 +132,7 @@ class _SubscriptionPlanListBody extends StatelessWidget {
     SubscriptionPlanListState state,
   ) {
     if (state is SubscriptionPlanListLoading ||
-        state is SubscriptionPlanListCreating) {
+        state is SubscriptionPlanListSaving) {
       return const Center(child: AppLoadingIndicator());
     }
     if (state is SubscriptionPlanListError) {
@@ -200,10 +163,26 @@ class _SubscriptionPlanListBody extends StatelessWidget {
           return ListTile(
             title: Text(plan.name),
             subtitle: Text(
-              'Monthly: ${plan.priceMonthly} · Annual: ${plan.priceAnnual ?? '—'}',
+              'Monthly: ${plan.priceMonthly} · Annual: ${plan.priceAnnual ?? '—'}'
+              ' · Users: ${plan.maxUsers ?? '∞'} · Students: ${plan.maxStudents ?? '∞'}',
             ),
-            trailing: Chip(
-              label: Text(plan.isActive ? 'Active' : 'Inactive'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Chip(label: Text(plan.isActive ? 'Active' : 'Inactive')),
+                if (state.canEdit)
+                  IconButton(
+                    tooltip: 'Edit plan',
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: () => _showEditDialog(context, plan),
+                  ),
+                if (state.canRetire && plan.isActive)
+                  IconButton(
+                    tooltip: 'Retire plan',
+                    icon: const Icon(Icons.archive_outlined),
+                    onPressed: () => _confirmRetire(context, plan),
+                  ),
+              ],
             ),
           );
         },

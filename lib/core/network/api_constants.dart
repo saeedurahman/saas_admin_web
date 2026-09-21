@@ -10,9 +10,13 @@ abstract final class ApiConstants {
   static const authRefresh = '$base/auth/refresh';
 
   static const platformTenants = '$base/platform/tenants';
+  static String platformTenant(String tenantId) =>
+      '$platformTenants/$tenantId';
   static String platformTenantSubscription(String tenantId) =>
       '$platformTenants/$tenantId/subscription';
   static const platformSubscriptionPlans = '$base/platform/subscription-plans';
+  static String platformSubscriptionPlan(String id) =>
+      '$platformSubscriptionPlans/$id';
   static const platformDashboard = '$base/platform/dashboard';
   static const platformSubscriptionInvoices = '$base/platform/subscription-invoices';
   static const platformSubscriptionInvoicesGenerate =

@@ -10,6 +10,9 @@ class SubscriptionInvoice extends Equatable {
     required this.invoiceNumber,
     required this.amount,
     required this.billingPeriodLabel,
+    this.periodStart,
+    this.periodEnd,
+    this.periodMonths,
     required this.dueDate,
     required this.status,
     this.paidDate,
@@ -25,6 +28,9 @@ class SubscriptionInvoice extends Equatable {
   final String invoiceNumber;
   final Money amount;
   final String billingPeriodLabel;
+  final DateTime? periodStart;
+  final DateTime? periodEnd;
+  final int? periodMonths;
   final DateTime dueDate;
   final String status;
   final DateTime? paidDate;
@@ -43,6 +49,9 @@ class SubscriptionInvoice extends Equatable {
         invoiceNumber,
         amount,
         billingPeriodLabel,
+        periodStart,
+        periodEnd,
+        periodMonths,
         dueDate,
         status,
         paidDate,

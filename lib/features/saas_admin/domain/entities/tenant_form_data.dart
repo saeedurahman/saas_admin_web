@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'tenant_type_constants.dart';
+
 class TenantFormData extends Equatable {
   const TenantFormData({
     this.name = '',
@@ -10,6 +12,7 @@ class TenantFormData extends Equatable {
     this.adminEmail = '',
     this.adminFullName = '',
     this.adminPassword = '',
+    this.tenantType = TenantTypeConstants.defaultType,
   });
 
   final String name;
@@ -20,6 +23,7 @@ class TenantFormData extends Equatable {
   final String adminEmail;
   final String adminFullName;
   final String adminPassword;
+  final String tenantType;
 
   TenantFormData copyWith({
     String? name,
@@ -30,6 +34,7 @@ class TenantFormData extends Equatable {
     String? adminEmail,
     String? adminFullName,
     String? adminPassword,
+    String? tenantType,
   }) {
     return TenantFormData(
       name: name ?? this.name,
@@ -40,6 +45,7 @@ class TenantFormData extends Equatable {
       adminEmail: adminEmail ?? this.adminEmail,
       adminFullName: adminFullName ?? this.adminFullName,
       adminPassword: adminPassword ?? this.adminPassword,
+      tenantType: tenantType ?? this.tenantType,
     );
   }
 
@@ -79,5 +85,6 @@ class TenantFormData extends Equatable {
         adminEmail,
         adminFullName,
         adminPassword,
+        tenantType,
       ];
 }

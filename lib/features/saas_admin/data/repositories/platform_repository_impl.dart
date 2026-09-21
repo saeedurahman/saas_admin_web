@@ -6,6 +6,7 @@ import '../../domain/entities/subscription_invoice.dart';
 import '../../domain/entities/subscription_invoice_filters.dart';
 import '../../domain/entities/subscription_invoice_page.dart';
 import '../../domain/entities/subscription_plan.dart';
+import '../../domain/entities/subscription_plan_update_data.dart';
 import '../../domain/entities/tenant_create_result.dart';
 import '../../domain/entities/tenant_form_data.dart';
 import '../../domain/entities/tenant_subscription.dart';
@@ -35,9 +36,15 @@ class PlatformRepositoryImpl implements PlatformRepository {
       adminEmail: data.adminEmail.trim(),
       adminFullName: data.adminFullName.trim(),
       adminPassword: data.adminPassword.trim(),
+      tenantType: data.tenantType,
     );
     final response = await _remote.createTenant(body);
     return response.toEntity();
+  }
+
+  @override
+  Future<void> updateTenantStatus(String tenantId, String status) async {
+    await _remote.updateTenant(tenantId, {'status': status});
   }
 
   @override
@@ -92,6 +99,24 @@ class PlatformRepositoryImpl implements PlatformRepository {
       featureFlags: featureFlags,
     );
     final model = await _remote.createSubscriptionPlan(body);
+    return model.toEntity();
+  }
+
+  @override
+  Future<SubscriptionPlan> updateSubscriptionPlan(
+    String planId,
+    SubscriptionPlanUpdateData data,
+  ) async {
+    final model = await _remote.updateSubscriptionPlan(
+      planId,
+      SubscriptionPlanJson.updatePayload(data),
+    );
+    return model.toEntity();
+  }
+
+  @override
+  Future<SubscriptionPlan> retireSubscriptionPlan(String planId) async {
+    final model = await _remote.retireSubscriptionPlan(planId);
     return model.toEntity();
   }
 

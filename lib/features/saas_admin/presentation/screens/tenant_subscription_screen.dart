@@ -3,15 +3,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injection.dart';
+import 'package:madaris_core/utils/date_formatter.dart';
 import 'package:madaris_core/widgets/app_button.dart';
 import 'package:madaris_core/widgets/app_loading_indicator.dart';
 import 'package:madaris_core/widgets/form/app_form_card.dart';
 import '../../domain/entities/platform_tenant.dart';
-import '../../domain/entities/tenant_subscription.dart';
 import '../cubit/saas_auth_cubit.dart';
 import '../cubit/saas_auth_state.dart';
 import '../cubit/tenant_subscription_cubit.dart';
 import '../cubit/tenant_subscription_state.dart';
+import '../widgets/period_override_field.dart';
+import '../widgets/subscription_summary.dart';
 
 class TenantSubscriptionScreen extends StatelessWidget {
   const TenantSubscriptionScreen({
@@ -62,17 +64,12 @@ class _TenantSubscriptionBody extends StatelessWidget {
     );
     if (picked == null || !context.mounted) return;
 
-    final cubit = context.read<TenantSubscriptionCubit>();
-    cubit.updateForm(
-      TenantSubscriptionAssignData(
-        planId: state.formData.planId,
-        billingCycle: state.formData.billingCycle,
-        status: state.formData.status,
-        trialEndsAt: trialEnd ? picked : state.formData.trialEndsAt,
-        currentPeriodStart:
-            trialEnd ? state.formData.currentPeriodStart : picked,
-      ),
-    );
+    context.read<TenantSubscriptionCubit>().updateForm(
+          state.formData.copyWith(
+            trialEndsAt: trialEnd ? picked : null,
+            currentPeriodStart: trialEnd ? null : picked,
+          ),
+        );
   }
 
   @override
@@ -131,6 +128,9 @@ class _TenantSubscriptionBody extends StatelessWidget {
       );
     }
 
+    final cubit = context.read<TenantSubscriptionCubit>();
+    final form = state.formData;
+
     return AppFormCard(
       scrollable: true,
       child: Column(
@@ -139,141 +139,117 @@ class _TenantSubscriptionBody extends StatelessWidget {
           if (state.existingSubscription == null)
             const Text('No subscription assigned yet.')
           else
-            Text(
-              'Current plan: ${state.existingSubscription!.plan?.name ?? state.existingSubscription!.planId}',
+            SubscriptionSummary(subscription: state.existingSubscription!),
+          const SizedBox(height: AppFormCard.sectionGap),
+          DropdownButtonFormField<String>(
+            initialValue: form.planId.isEmpty ? null : form.planId,
+            decoration: const InputDecoration(
+              labelText: 'Plan',
+              border: OutlineInputBorder(),
             ),
+            items: state.plans
+                .map(
+                  (plan) => DropdownMenuItem(
+                    value: plan.id,
+                    child: Text(plan.name),
+                  ),
+                )
+                .toList(),
+            onChanged: state.canEdit
+                ? (value) {
+                    if (value == null) return;
+                    cubit.updateForm(form.copyWith(planId: value));
+                  }
+                : null,
+          ),
           const SizedBox(height: AppFormCard.fieldGap),
           DropdownButtonFormField<String>(
-              initialValue: state.formData.planId.isEmpty
-                  ? null
-                  : state.formData.planId,
-              decoration: const InputDecoration(
-                labelText: 'Plan',
-                border: OutlineInputBorder(),
-              ),
-              items: state.plans
-                  .map(
-                    (plan) => DropdownMenuItem(
-                      value: plan.id,
-                      child: Text(plan.name),
-                    ),
+            initialValue: form.billingCycle,
+            decoration: const InputDecoration(
+              labelText: 'Billing cycle',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+              DropdownMenuItem(value: 'annual', child: Text('Annual')),
+            ],
+            onChanged: state.canEdit
+                ? (value) {
+                    if (value == null) return;
+                    cubit.updateForm(form.copyWith(billingCycle: value));
+                  }
+                : null,
+          ),
+          const SizedBox(height: AppFormCard.fieldGap),
+          DropdownButtonFormField<String>(
+            initialValue: form.status,
+            decoration: const InputDecoration(
+              labelText: 'Status',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'trial', child: Text('Trial')),
+              DropdownMenuItem(value: 'active', child: Text('Active')),
+              DropdownMenuItem(value: 'past_due', child: Text('Past due')),
+              DropdownMenuItem(value: 'suspended', child: Text('Suspended')),
+              DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
+            ],
+            onChanged: state.canEdit
+                ? (value) {
+                    if (value == null) return;
+                    cubit.updateForm(form.copyWith(status: value));
+                  }
+                : null,
+          ),
+          const SizedBox(height: AppFormCard.fieldGap),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Trial ends at'),
+            subtitle: Text(
+              DateFormatter.formatFriendly(form.trialEndsAt) ?? 'Not set',
+            ),
+            trailing: state.canEdit
+                ? IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () => _pickDate(context, state, trialEnd: true),
                   )
-                  .toList(),
-              onChanged: state.canEdit
-                  ? (value) {
-                      if (value == null) return;
-                      context.read<TenantSubscriptionCubit>().updateForm(
-                            TenantSubscriptionAssignData(
-                              planId: value,
-                              billingCycle: state.formData.billingCycle,
-                              status: state.formData.status,
-                              trialEndsAt: state.formData.trialEndsAt,
-                              currentPeriodStart:
-                                  state.formData.currentPeriodStart,
-                            ),
-                          );
-                    }
-                  : null,
+                : null,
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Period start'),
+            subtitle: Text(
+              DateFormatter.formatFriendly(form.currentPeriodStart) ??
+                  'Today (default)',
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: state.formData.billingCycle,
-              decoration: const InputDecoration(
-                labelText: 'Billing cycle',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
-                DropdownMenuItem(value: 'annual', child: Text('Annual')),
-              ],
-              onChanged: state.canEdit
-                  ? (value) {
-                      if (value == null) return;
-                      context.read<TenantSubscriptionCubit>().updateForm(
-                            TenantSubscriptionAssignData(
-                              planId: state.formData.planId,
-                              billingCycle: value,
-                              status: state.formData.status,
-                              trialEndsAt: state.formData.trialEndsAt,
-                              currentPeriodStart:
-                                  state.formData.currentPeriodStart,
-                            ),
-                          );
-                    }
-                  : null,
+            trailing: state.canEdit
+                ? IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: () =>
+                        _pickDate(context, state, trialEnd: false),
+                  )
+                : null,
+          ),
+          PeriodOverrideField(
+            // Rebuild from the default mode once a save resets the override.
+            key: ValueKey(state.existingSubscription),
+            enabled: state.canEdit,
+            showError: state.showPeriodError,
+            onValidationChanged: cubit.setPeriodError,
+            periodMonths: form.periodMonths,
+            periodEnd: form.currentPeriodEnd,
+            periodStart: form.currentPeriodStart,
+            onChanged: ({int? months, DateTime? end}) => cubit.updateForm(
+              form.withPeriodOverride(months: months, end: end),
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: state.formData.status,
-              decoration: const InputDecoration(
-                labelText: 'Status',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'trial', child: Text('Trial')),
-                DropdownMenuItem(value: 'active', child: Text('Active')),
-                DropdownMenuItem(value: 'past_due', child: Text('Past due')),
-                DropdownMenuItem(value: 'suspended', child: Text('Suspended')),
-                DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
-              ],
-              onChanged: state.canEdit
-                  ? (value) {
-                      if (value == null) return;
-                      context.read<TenantSubscriptionCubit>().updateForm(
-                            TenantSubscriptionAssignData(
-                              planId: state.formData.planId,
-                              billingCycle: state.formData.billingCycle,
-                              status: value,
-                              trialEndsAt: state.formData.trialEndsAt,
-                              currentPeriodStart:
-                                  state.formData.currentPeriodStart,
-                            ),
-                          );
-                    }
-                  : null,
+          ),
+          const SizedBox(height: AppFormCard.sectionGap),
+          if (state.canEdit)
+            AppButton(
+              label: 'Save subscription',
+              isLoading: state.isSubmitting,
+              onPressed: () => cubit.submit(),
             ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Trial ends at'),
-              subtitle: Text(
-                state.formData.trialEndsAt?.toIso8601String().split('T').first ??
-                    'Not set',
-              ),
-              trailing: state.canEdit
-                  ? IconButton(
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: () =>
-                          _pickDate(context, state, trialEnd: true),
-                    )
-                  : null,
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Period start'),
-              subtitle: Text(
-                state.formData.currentPeriodStart
-                        ?.toIso8601String()
-                        .split('T')
-                        .first ??
-                    'Today (default)',
-              ),
-              trailing: state.canEdit
-                  ? IconButton(
-                      icon: const Icon(Icons.calendar_today),
-                      onPressed: () =>
-                          _pickDate(context, state, trialEnd: false),
-                    )
-                  : null,
-            ),
-            const SizedBox(height: AppFormCard.sectionGap),
-            if (state.canEdit)
-              AppButton(
-                label: 'Save subscription',
-                isLoading: state.isSubmitting,
-                onPressed: () =>
-                    context.read<TenantSubscriptionCubit>().submit(),
-              ),
         ],
       ),
     );
